@@ -303,7 +303,7 @@ if (!response.ok) {
     statusEl.textContent = "LIVE • GPS AKTIV";
 
   } catch (error) {
-    statusEl.textContent = "FEHLER BEIM LADEN DER FLUGDATEN";
+    statusEl.textContent = "FEHLER: " + error.message;
     console.error(error);
   } finally {
     loading = false;
