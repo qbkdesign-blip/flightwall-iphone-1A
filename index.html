@@ -257,6 +257,10 @@ async function loadFlights() {
 
     const response = await fetch(url);
 
+if (!response.ok) {
+  throw new Error("HTTP " + response.status);
+}
+
     if (!response.ok) {
       throw new Error("Flugdaten nicht erreichbar");
     }
