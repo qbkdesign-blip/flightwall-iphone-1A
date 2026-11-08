@@ -253,7 +253,7 @@ async function loadFlights() {
 
   try {
     const url =
-      `https://api.adsb.lol/v2/lat/${userLat}/lon/${userLon}/dist/${RADIUS_NM}`;
+  `https://bitter-fog-12bdflightwall-proxy.qbk-design.workers.dev/flights?lat=${userLat}&lon=${userLon}&dist=${RADIUS_NM}`;
 
     const response = await fetch(url);
 
