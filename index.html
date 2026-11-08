@@ -1,45 +1,49 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>FLIGHTWALL</title>
+<title>FLIGHTWALL RADAR</title>
 
 <style>
-* {
-  box-sizing: border-box;
+* { box-sizing: border-box; }
+
+:root {
+  --yellow: #e5bd32;
+  --orange: #ff8c00;
+  --green: #69c77b;
+  --background: #050505;
 }
 
 body {
   margin: 0;
-  padding: 16px;
-  background: #050505;
+  padding: 12px;
+  background: var(--background);
   color: #eee;
   font-family: Arial, Helvetica, sans-serif;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 2px solid #d9ad32;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
+  border-bottom: 2px solid var(--yellow);
+  padding-bottom: 8px;
+  margin-bottom: 7px;
 }
 
 h1 {
-  color: #e5bd32;
-  font-size: clamp(25px, 4vw, 44px);
+  color: var(--yellow);
+  font-size: clamp(22px, 4vw, 38px);
   letter-spacing: 5px;
   margin: 0;
   font-weight: 900;
 }
 
 #clock {
-  color: #e5bd32;
-  font-size: clamp(18px, 3vw, 29px);
+  color: var(--yellow);
+  font-size: clamp(17px, 3vw, 25px);
   font-weight: bold;
   font-family: monospace;
 }
@@ -50,128 +54,182 @@ h1 {
   align-items: center;
   gap: 8px;
   color: #888;
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 1px;
-  margin-bottom: 13px;
+  margin-bottom: 6px;
   text-transform: uppercase;
 }
 
-#status {
-  color: #69c77b;
+#status { color: var(--green); }
+#count { color: var(--yellow); font-weight: bold; }
+
+#radar {
+  position: relative;
+  width: 100%;
+  height: calc(100dvh - 116px);
+  min-height: 230px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at center, #10130d 0%, #080a07 48%, #050505 100%);
+  border: 1px solid #55451e;
+  border-radius: 5px;
 }
 
-#count {
-  color: #e5bd32;
+#radarCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#aircraftLabels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.aircraft-card {
+  position: absolute;
+  width: 154px;
+  min-height: 70px;
+  padding: 5px 7px;
+  background: rgba(5, 5, 5, 0.94);
+  border: 1px solid var(--yellow);
+  border-left: 3px solid var(--yellow);
+  border-radius: 3px;
+  color: #ddd;
+  font-size: 9px;
+  line-height: 1.35;
+  overflow: hidden;
+  box-shadow: 0 2px 8px #000;
+}
+
+.aircraft-card.ground {
+  border-color: var(--orange);
+  border-left-color: var(--orange);
+}
+
+.card-flight {
+  color: var(--yellow);
+  font-size: 11px;
   font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
 }
 
-.table-wrap {
-  width: 100%;
-  overflow-x: auto;
+.aircraft-card.ground .card-flight {
+  color: var(--orange);
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-
-th {
-  color: #e5bd32;
-  text-align: left;
-  font-size: clamp(8px, 1.4vw, 13px);
-  padding: 11px 5px;
-  border-bottom: 1px solid #8a702d;
-  letter-spacing: 0.8px;
-  background: #151515;
-}
-
-td {
-  padding: 12px 5px;
-  border-bottom: 1px solid #252525;
-  font-size: clamp(9px, 1.55vw, 15px);
+.card-airline {
+  color: #aaa;
+  font-size: 9px;
+  margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-th:nth-child(1), td:nth-child(1) { width: 14%; }
-th:nth-child(2), td:nth-child(2) { width: 25%; }
-th:nth-child(3), td:nth-child(3) { width: 14%; }
-th:nth-child(4), td:nth-child(4) { width: 17%; }
-th:nth-child(5), td:nth-child(5) { width: 14%; }
-th:nth-child(6), td:nth-child(6) { width: 16%; }
-
-tr:nth-child(even) {
-  background: #111;
+.card-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px 5px;
 }
 
-.flight {
-  color: #e5bd32;
-  font-weight: bold;
+.card-details span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* NEU: Flugzeuge am Boden orange markieren */
-.ground {
-  color: #ff8c00;
-  font-weight: bold;
+.card-route {
+  color: #888;
+  border-top: 1px solid #333;
+  margin-top: 3px;
+  padding-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 #empty {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   text-align: center;
   color: #888;
-  padding: 35px 10px;
+  font-size: 12px;
+  width: 80%;
   display: none;
-  font-size: 13px;
+  pointer-events: none;
 }
 
-button {
-  background: #d9ad32;
+#radarHint {
+  position: absolute;
+  left: 9px;
+  bottom: 7px;
+  color: #77652c;
+  font-size: 9px;
+  letter-spacing: 1px;
+  pointer-events: none;
+}
+
+#locate {
+  background: var(--yellow);
   color: #080808;
   border: none;
-  padding: 10px 15px;
+  padding: 7px 12px;
   font-weight: bold;
   cursor: pointer;
-  margin-top: 15px;
+  margin-top: 7px;
   letter-spacing: 1px;
+  font-size: 10px;
 }
 
 footer {
-  margin-top: 18px;
-  border-top: 1px solid #444;
-  padding-top: 10px;
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
   color: #666;
-  font-size: 10px;
+  font-size: 9px;
   display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  letter-spacing: 0.5px;
+  gap: 12px;
+  letter-spacing: .4px;
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
-  body {
-    padding: 8px 14px;
-  }
+  body { padding: 6px 10px; }
 
   header {
-    margin-bottom: 7px;
-    padding-bottom: 7px;
+    padding-bottom: 4px;
+    margin-bottom: 4px;
   }
 
-  .info {
-    margin-bottom: 7px;
+  .info { margin-bottom: 4px; }
+
+  #radar {
+    height: calc(100dvh - 88px);
+    min-height: 190px;
   }
 
-  th {
-    padding: 7px 4px;
-  }
-
-  td {
-    padding: 8px 4px;
+  #locate {
+    margin-top: 4px;
+    padding: 5px 9px;
   }
 
   footer {
-    margin-top: 9px;
+    bottom: 7px;
+    right: 10px;
+  }
+
+  .aircraft-card {
+    width: 145px;
+    min-height: 65px;
+    padding: 4px 6px;
+    font-size: 8px;
   }
 }
 </style>
@@ -185,29 +243,16 @@ footer {
 </header>
 
 <div class="info">
-  <span id="status">GPS wird gesucht ...</span>
+  <span id="status">GPS WIRD GESUCHT ...</span>
   <span id="count">0 AIRCRAFT</span>
   <span>LIVE RADAR DATA</span>
 </div>
 
-<div class="table-wrap">
-<table>
-  <thead>
-    <tr>
-      <th>FLIGHT</th>
-      <th>AIRCRAFT TYPE</th>
-      <th>ALTITUDE</th>
-      <th>SPEED</th>
-      <th>HEADING</th>
-      <th>DISTANCE</th>
-    </tr>
-  </thead>
-  <tbody id="flights"></tbody>
-</table>
-</div>
-
-<div id="empty">
-  Aktuell keine Flugzeuge im gewählten Umkreis gefunden.
+<div id="radar">
+  <canvas id="radarCanvas"></canvas>
+  <div id="aircraftLabels"></div>
+  <div id="empty">Aktuell keine Flugzeuge im gewählten Umkreis gefunden.</div>
+  <div id="radarHint">N ↑ &nbsp; RANGE 50 NM</div>
 </div>
 
 <button id="locate">GPS-STANDORT AKTUALISIEREN</button>
@@ -229,12 +274,15 @@ let userLat = null;
 let userLon = null;
 let refreshTimer = null;
 let loading = false;
+let currentAircraft = [];
 
 const statusEl = document.getElementById("status");
-const flightsEl = document.getElementById("flights");
 const countEl = document.getElementById("count");
 const emptyEl = document.getElementById("empty");
+const labelsEl = document.getElementById("aircraftLabels");
 const lastUpdateEl = document.getElementById("lastUpdate");
+const canvas = document.getElementById("radarCanvas");
+const ctx = canvas.getContext("2d");
 
 function updateClock() {
   document.getElementById("clock").textContent =
@@ -259,33 +307,15 @@ function distanceNM(lat1, lon1, lat2, lon2) {
     Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function altitudeText(value) {
+function altitudeKm(value) {
   if (value === "ground") return "BODEN";
   if (typeof value !== "number") return "--";
-
-  return Math.round(value * 0.3048)
-    .toLocaleString("de-AT") + " m";
+  return (value * 0.0003048).toFixed(1) + " km";
 }
 
 function speedText(value) {
   if (typeof value !== "number") return "--";
-
-  return Math.round(value * 1.852)
-    .toLocaleString("de-AT") + " km/h";
-}
-
-function headingText(degrees) {
-  if (typeof degrees !== "number") return "--";
-
-  const directions = [
-    "N", "NNO", "NO", "ONO",
-    "O", "OSO", "SO", "SSO",
-    "S", "SSW", "SW", "WSW",
-    "W", "WNW", "NW", "NNW"
-  ];
-
-  return Math.round(degrees) + "° " +
-    directions[Math.round(degrees / 22.5) % 16];
+  return Math.round(value * 1.852) + " km/h";
 }
 
 function aircraftName(code) {
@@ -335,12 +365,310 @@ function aircraftName(code) {
   return types[code] || code;
 }
 
-function addCell(row, text, className) {
-  const cell = document.createElement("td");
-  cell.textContent = text;
-  cell.title = text;
-  if (className) cell.className = className;
-  row.appendChild(cell);
+/* Airline wird anhand des Rufzeichen-Präfixes geschätzt. */
+function airlineName(flight) {
+  const code = (flight || "").trim().toUpperCase().replace(/\s/g, "");
+
+  const airlines = {
+    "AUA": "Austrian Airlines",
+    "DLH": "Lufthansa",
+    "EWG": "Eurowings",
+    "SWR": "Swiss",
+    "BEL": "Brussels Airlines",
+    "KLM": "KLM",
+    "AFR": "Air France",
+    "BAW": "British Airways",
+    "EZY": "easyJet",
+    "RYR": "Ryanair",
+    "WZZ": "Wizz Air",
+    "WMT": "Wizz Air Malta",
+    "TOM": "TUI Airways",
+    "CFG": "Condor",
+    "IBE": "Iberia",
+    "TAP": "TAP Air Portugal",
+    "SAS": "Scandinavian Airlines",
+    "LOT": "LOT Polish Airlines",
+    "THY": "Turkish Airlines",
+    "QTR": "Qatar Airways",
+    "UAE": "Emirates",
+    "ETD": "Etihad Airways",
+    "ACA": "Air Canada",
+    "AAL": "American Airlines",
+    "UAL": "United Airlines",
+    "DAL": "Delta Air Lines",
+    "SIA": "Singapore Airlines",
+    "FIN": "Finnair",
+    "NOZ": "Norwegian",
+    "VLG": "Vueling",
+    "TVS": "Smartwings",
+    "PGT": "Pegasus Airlines",
+    "ROT": "TAROM",
+    "MSR": "EgyptAir",
+    "THA": "Thai Airways",
+    "QFA": "Qantas"
+  };
+
+  if (!code || code === "UNKNOWN") return "AIRLINE UNBEKANNT";
+
+  const prefix = code.substring(0, 3);
+  return airlines[prefix] || "AIRLINE: " + prefix;
+}
+
+/* Radargröße und Koordinaten */
+function getRadarGeometry() {
+  const rect = canvas.getBoundingClientRect();
+  const width = rect.width;
+  const height = rect.height;
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = Math.round(width * dpr);
+  canvas.height = Math.round(height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const cx = width / 2;
+  const cy = height / 2;
+  const radius = Math.max(40, Math.min(width, height) * 0.43);
+
+  return { width, height, cx, cy, radius };
+}
+
+/* Position: Norden ist immer oben */
+function radarPosition(plane, geo) {
+  const latScale = 60;
+  const lonScale = 60 * Math.cos(userLat * Math.PI / 180);
+
+  const north = (plane.lat - userLat) * latScale;
+  const east = (plane.lon - userLon) * lonScale;
+
+  const scale = geo.radius / RADIUS_NM;
+
+  return {
+    x: geo.cx + east * scale,
+    y: geo.cy - north * scale
+  };
+}
+
+function drawRadar() {
+  const geo = getRadarGeometry();
+  const { width, height, cx, cy, radius } = geo;
+
+  ctx.clearRect(0, 0, width, height);
+
+  /* Radar-Ringe */
+  ctx.strokeStyle = "rgba(229,189,50,0.28)";
+  ctx.lineWidth = 1;
+
+  [0.25, 0.5, 0.75, 1].forEach(factor => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius * factor, 0, Math.PI * 2);
+    ctx.stroke();
+  });
+
+  /* Kreuzlinien */
+  ctx.strokeStyle = "rgba(229,189,50,0.18)";
+  ctx.beginPath();
+  ctx.moveTo(cx - radius, cy);
+  ctx.lineTo(cx + radius, cy);
+  ctx.moveTo(cx, cy - radius);
+  ctx.lineTo(cx, cy + radius);
+  ctx.stroke();
+
+  /* Diagonale Orientierungslinien */
+  ctx.strokeStyle = "rgba(229,189,50,0.08)";
+  ctx.beginPath();
+  ctx.moveTo(cx - radius * 0.7, cy - radius * 0.7);
+  ctx.lineTo(cx + radius * 0.7, cy + radius * 0.7);
+  ctx.moveTo(cx + radius * 0.7, cy - radius * 0.7);
+  ctx.lineTo(cx - radius * 0.7, cy + radius * 0.7);
+  ctx.stroke();
+
+  /* Entfernungsbeschriftungen */
+  ctx.fillStyle = "rgba(229,189,50,0.65)";
+  ctx.font = "9px Arial";
+  ctx.textAlign = "left";
+
+  ctx.fillText("12.5 NM", cx + 5, cy - radius * 0.25 + 10);
+  ctx.fillText("25 NM", cx + 5, cy - radius * 0.5 + 10);
+  ctx.fillText("37.5 NM", cx + 5, cy - radius * 0.75 + 10);
+  ctx.fillText("50 NM", cx + 5, cy - radius + 10);
+
+  /* Norden */
+  ctx.fillStyle = "#e5bd32";
+  ctx.font = "bold 12px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("N", cx, Math.max(13, cy - radius - 8));
+
+  /* Eigener Standort */
+  ctx.strokeStyle = "#69c77b";
+  ctx.fillStyle = "#69c77b";
+  ctx.lineWidth = 2;
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(cx - 13, cy);
+  ctx.lineTo(cx + 13, cy);
+  ctx.moveTo(cx, cy - 13);
+  ctx.lineTo(cx, cy + 13);
+  ctx.stroke();
+
+  /* Flugzeug-Symbole */
+  currentAircraft.forEach(plane => {
+    const pos = radarPosition(plane, geo);
+
+    /* Nur Flugzeuge innerhalb des Radarbereichs */
+    if (Math.hypot(pos.x - cx, pos.y - cy) > radius) return;
+
+    const isGround = plane.alt_baro === "ground";
+    const color = isGround ? "#ff8c00" : "#e5bd32";
+    const heading = typeof plane.track === "number" ? plane.track : 0;
+
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
+    ctx.rotate(heading * Math.PI / 180);
+
+    ctx.fillStyle = color;
+    ctx.strokeStyle = "#050505";
+    ctx.lineWidth = 1;
+
+    /* Pfeil zeigt nach Norden bei 0 Grad */
+    ctx.beginPath();
+    ctx.moveTo(0, -10);
+    ctx.lineTo(5, 6);
+    ctx.lineTo(0, 3);
+    ctx.lineTo(-5, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
+  });
+
+  positionAircraftCards(geo);
+}
+
+/* Infofenster möglichst ohne Überlappung platzieren */
+function positionAircraftCards(geo) {
+  labelsEl.replaceChildren();
+
+  const cardWidth = window.innerWidth <= 700 ? 145 : 154;
+  const cardHeight = window.innerHeight <= 500 ? 65 : 70;
+  const margin = 4;
+  const placed = [];
+
+  const visible = currentAircraft
+    .map(plane => ({
+      plane,
+      pos: radarPosition(plane, geo)
+    }))
+    .filter(item =>
+      Math.hypot(item.pos.x - geo.cx, item.pos.y - geo.cy)
+      <= geo.radius
+    )
+    .sort((a, b) => a.plane.distance - b.plane.distance);
+
+  visible.forEach(item => {
+    const plane = item.plane;
+    const pos = item.pos;
+
+    const candidates = [
+      [pos.x + 12, pos.y - cardHeight / 2],
+      [pos.x - cardWidth - 12, pos.y - cardHeight / 2],
+      [pos.x + 12, pos.y - cardHeight - 7],
+      [pos.x - cardWidth - 12, pos.y - cardHeight - 7],
+      [pos.x + 12, pos.y + 10],
+      [pos.x - cardWidth - 12, pos.y + 10],
+      [pos.x - cardWidth / 2, pos.y - cardHeight - 14],
+      [pos.x - cardWidth / 2, pos.y + 14]
+    ];
+
+    let best = null;
+    let bestScore = Infinity;
+
+    candidates.forEach(candidate => {
+      const x = Math.max(margin, Math.min(
+        geo.width - cardWidth - margin, candidate[0]
+      ));
+      const y = Math.max(margin, Math.min(
+        geo.height - cardHeight - margin, candidate[1]
+      ));
+
+      let score = 0;
+
+      placed.forEach(other => {
+        const overlapX = Math.max(
+          0,
+          Math.min(x + cardWidth, other.x + cardWidth) -
+          Math.max(x, other.x)
+        );
+
+        const overlapY = Math.max(
+          0,
+          Math.min(y + cardHeight, other.y + cardHeight) -
+          Math.max(y, other.y)
+        );
+
+        score += overlapX * overlapY * 10;
+      });
+
+      const distanceFromArrow =
+        Math.hypot(x + cardWidth / 2 - pos.x,
+                   y + cardHeight / 2 - pos.y);
+
+      score += distanceFromArrow * 0.05;
+
+      if (score < bestScore) {
+        bestScore = score;
+        best = { x, y };
+      }
+    });
+
+    if (!best) return;
+
+    placed.push(best);
+
+    const card = document.createElement("div");
+    const isGround = plane.alt_baro === "ground";
+
+    card.className = "aircraft-card" + (isGround ? " ground" : "");
+    card.style.width = cardWidth + "px";
+    card.style.left = best.x + "px";
+    card.style.top = best.y + "px";
+
+    const flight = (plane.flight || "").trim() || "UNKNOWN";
+    const airline = airlineName(flight);
+    const type = aircraftName(plane.t);
+    const altitude = altitudeKm(plane.alt_baro);
+    const speed = speedText(plane.gs);
+    const distance = (plane.distance * 1.852).toFixed(1) + " km";
+
+    card.innerHTML = `
+      <div class="card-flight"></div>
+      <div class="card-airline"></div>
+      <div class="card-details">
+        <span class="card-type"></span>
+        <span class="card-altitude"></span>
+        <span class="card-speed"></span>
+        <span class="card-distance"></span>
+      </div>
+      <div class="card-route">START: -- &nbsp; ZIEL: --</div>
+    `;
+
+    card.querySelector(".card-flight").textContent = flight;
+    card.querySelector(".card-airline").textContent = airline;
+    card.querySelector(".card-type").textContent = type;
+    card.querySelector(".card-altitude").textContent = "HÖHE: " + altitude;
+    card.querySelector(".card-speed").textContent = "SPEED: " + speed;
+    card.querySelector(".card-distance").textContent = "DISTANZ: " + distance;
+
+    labelsEl.appendChild(card);
+  });
 }
 
 async function loadFlights() {
@@ -362,50 +690,22 @@ async function loadFlights() {
     const data = await response.json();
     const aircraft = Array.isArray(data.ac) ? data.ac : [];
 
-    const nearby = aircraft
+    currentAircraft = aircraft
       .filter(a =>
         typeof a.lat === "number" &&
         typeof a.lon === "number"
       )
       .map(a => ({
         ...a,
-        distance: distanceNM(
-          userLat, userLon, a.lat, a.lon
-        )
+        distance: distanceNM(userLat, userLon, a.lat, a.lon)
       }))
       .filter(a => a.distance <= RADIUS_NM)
       .sort((a, b) => a.distance - b.distance);
 
-    flightsEl.replaceChildren();
+    countEl.textContent = currentAircraft.length + " AIRCRAFT";
+    emptyEl.style.display = currentAircraft.length ? "none" : "block";
 
-    nearby.forEach(plane => {
-      const row = document.createElement("tr");
-
-      const flight =
-        (plane.flight || "").trim() || "UNKNOWN";
-
-      addCell(row, flight, "flight");
-      addCell(row, aircraftName(plane.t));
-
-      // BODEN wird orange dargestellt
-      addCell(
-        row,
-        altitudeText(plane.alt_baro),
-        plane.alt_baro === "ground" ? "ground" : ""
-      );
-
-      addCell(row, speedText(plane.gs));
-      addCell(row, headingText(plane.track));
-      addCell(
-        row,
-        (plane.distance * 1.852).toFixed(1) + " km"
-      );
-
-      flightsEl.appendChild(row);
-    });
-
-    countEl.textContent = nearby.length + " AIRCRAFT";
-    emptyEl.style.display = nearby.length ? "none" : "block";
+    drawRadar();
 
     statusEl.textContent = "LIVE • GPS AKTIV";
 
@@ -454,6 +754,10 @@ function startGPS() {
 
 document.getElementById("locate")
   .addEventListener("click", startGPS);
+
+window.addEventListener("resize", () => {
+  if (userLat !== null) drawRadar();
+});
 
 startGPS();
 </script>
