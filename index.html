@@ -168,13 +168,13 @@ footer {
 <table>
   <thead>
     <tr>
-      <th>FLIGHT</th>
-      <th>AIRCRAFT</th>
-      <th>ALTITUDE</th>
-      <th>SPEED</th>
-      <th>HEADING</th>
-      <th>DISTANCE</th>
-    </tr>
+  <th>FLIGHT</th>
+  <th>AIRCRAFT TYPE</th>
+  <th>ALTITUDE</th>
+  <th>SPEED</th>
+  <th>HEADING</th>
+  <th>DISTANCE</th>
+</tr>
   </thead>
   <tbody id="flights"></tbody>
 </table>
@@ -241,16 +241,70 @@ function headingText(degrees) {
 }
 
 function altitudeText(value) {
-  if (value === "ground") return "GROUND";
+  if (value === "ground") return "BODEN";
   if (typeof value !== "number") return "--";
-  return Math.round(value).toLocaleString("de-AT") + " ft";
+
+  const meters = Math.round(value * 0.3048);
+  return meters.toLocaleString("de-AT") + " m";
 }
 
 function speedText(value) {
   if (typeof value !== "number") return "--";
-  return Math.round(value) + " kt";
+
+  const kmh = Math.round(value * 1.852);
+  return kmh.toLocaleString("de-AT") + " km/h";
 }
 
+function headingText(degrees) {
+  if (typeof degrees !== "number") return "--";
+
+  const directions = [
+    "N", "NNO", "NO", "ONO",
+    "O", "OSO", "SO", "SSO",
+    "S", "SSW", "SW", "WSW",
+    "W", "WNW", "NW", "NNW"
+  ];
+
+  return Math.round(degrees) + "° " +
+    directions[Math.round(degrees / 22.5) % 16];
+}
+
+function aircraftName(code) {
+  const types = {
+    "A318": "Airbus A318",
+    "A319": "Airbus A319",
+    "A320": "Airbus A320",
+    "A20N": "Airbus A320neo",
+    "A321": "Airbus A321",
+    "A21N": "Airbus A321neo",
+    "A332": "Airbus A330-200",
+    "A333": "Airbus A330-300",
+    "A359": "Airbus A350-900",
+    "A35K": "Airbus A350-1000",
+    "A388": "Airbus A380",
+    "B738": "Boeing 737-800",
+    "B38M": "Boeing 737 MAX 8",
+    "B739": "Boeing 737-900",
+    "B744": "Boeing 747-400",
+    "B748": "Boeing 747-8",
+    "B763": "Boeing 767-300",
+    "B772": "Boeing 777-200",
+    "B77W": "Boeing 777-300ER",
+    "B788": "Boeing 787-8",
+    "B789": "Boeing 787-9",
+    "E190": "Embraer E190",
+    "E195": "Embraer E195",
+    "E290": "Embraer E190-E2",
+    "E295": "Embraer E195-E2",
+    "CRJ9": "Bombardier CRJ-900",
+    "DH8D": "Dash 8 Q400",
+    "AT76": "ATR 72-600"
+  };
+
+  if (!code) return "UNBEKANNT";
+
+  return types[code] || code;
+}
 function addCell(row, text, className) {
   const cell = document.createElement("td");
   cell.textContent = text;
@@ -299,14 +353,14 @@ if (!response.ok) {
       const row = document.createElement("tr");
 
       const flight = (plane.flight || "").trim() || "UNKNOWN";
-      const aircraftType = plane.t || "UNKNOWN";
+      const aircraftType = aircraftName(plane.t);
 
       addCell(row, flight, "flight");
       addCell(row, aircraftType);
       addCell(row, altitudeText(plane.alt_baro));
       addCell(row, speedText(plane.gs));
       addCell(row, headingText(plane.track));
-      addCell(row, plane.distance.toFixed(1) + " NM");
+      addCell(row, (plane.distance * 1.852).toFixed(1) + " km");
 
       flightsEl.appendChild(row);
     });
