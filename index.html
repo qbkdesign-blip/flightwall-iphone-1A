@@ -111,6 +111,12 @@ tr:nth-child(even) {
   font-weight: bold;
 }
 
+/* NEU: Flugzeuge am Boden orange markieren */
+.ground {
+  color: #ff8c00;
+  font-weight: bold;
+}
+
 #empty {
   text-align: center;
   color: #888;
@@ -380,7 +386,14 @@ async function loadFlights() {
 
       addCell(row, flight, "flight");
       addCell(row, aircraftName(plane.t));
-      addCell(row, altitudeText(plane.alt_baro));
+
+      // BODEN wird orange dargestellt
+      addCell(
+        row,
+        altitudeText(plane.alt_baro),
+        plane.alt_baro === "ground" ? "ground" : ""
+      );
+
       addCell(row, speedText(plane.gs));
       addCell(row, headingText(plane.track));
       addCell(
