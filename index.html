@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -12,10 +13,10 @@
 
 body {
   margin: 0;
-  padding: 18px;
+  padding: 16px;
   background: #050505;
   color: #eee;
-  font-family: "Arial Narrow", Arial, sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
   overflow-x: hidden;
 }
 
@@ -24,21 +25,21 @@ header {
   justify-content: space-between;
   align-items: center;
   border-bottom: 2px solid #d9ad32;
-  padding-bottom: 13px;
+  padding-bottom: 12px;
   margin-bottom: 12px;
 }
 
 h1 {
   color: #e5bd32;
-  font-size: clamp(26px, 4vw, 44px);
-  letter-spacing: 6px;
+  font-size: clamp(25px, 4vw, 44px);
+  letter-spacing: 5px;
   margin: 0;
   font-weight: 900;
 }
 
 #clock {
   color: #e5bd32;
-  font-size: clamp(20px, 3vw, 30px);
+  font-size: clamp(18px, 3vw, 29px);
   font-weight: bold;
   font-family: monospace;
 }
@@ -46,11 +47,12 @@ h1 {
 .info {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
   color: #888;
   font-size: 11px;
-  letter-spacing: 1.5px;
-  margin-bottom: 14px;
+  letter-spacing: 1px;
+  margin-bottom: 13px;
   text-transform: uppercase;
 }
 
@@ -63,6 +65,11 @@ h1 {
   font-weight: bold;
 }
 
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -72,22 +79,28 @@ table {
 th {
   color: #e5bd32;
   text-align: left;
-  font-size: clamp(9px, 1.5vw, 13px);
-  padding: 12px 6px;
+  font-size: clamp(8px, 1.4vw, 13px);
+  padding: 11px 5px;
   border-bottom: 1px solid #8a702d;
-  letter-spacing: 1.2px;
+  letter-spacing: 0.8px;
   background: #151515;
 }
 
 td {
-  padding: 13px 6px;
+  padding: 12px 5px;
   border-bottom: 1px solid #252525;
-  font-size: clamp(10px, 1.7vw, 16px);
+  font-size: clamp(9px, 1.55vw, 15px);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: "Arial Narrow", Arial, sans-serif;
 }
+
+th:nth-child(1), td:nth-child(1) { width: 14%; }
+th:nth-child(2), td:nth-child(2) { width: 25%; }
+th:nth-child(3), td:nth-child(3) { width: 14%; }
+th:nth-child(4), td:nth-child(4) { width: 17%; }
+th:nth-child(5), td:nth-child(5) { width: 14%; }
+th:nth-child(6), td:nth-child(6) { width: 16%; }
 
 tr:nth-child(even) {
   background: #111;
@@ -98,15 +111,12 @@ tr:nth-child(even) {
   font-weight: bold;
 }
 
-.muted {
-  color: #888;
-}
-
 #empty {
   text-align: center;
   color: #888;
   padding: 35px 10px;
   display: none;
+  font-size: 13px;
 }
 
 button {
@@ -121,32 +131,41 @@ button {
 }
 
 footer {
-  margin-top: 20px;
+  margin-top: 18px;
   border-top: 1px solid #444;
   padding-top: 10px;
   color: #666;
   font-size: 10px;
   display: flex;
   justify-content: space-between;
-  letter-spacing: 1px;
+  gap: 8px;
+  letter-spacing: 0.5px;
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
   body {
-    padding: 10px 18px;
+    padding: 8px 14px;
   }
 
   header {
-    margin-bottom: 8px;
+    margin-bottom: 7px;
     padding-bottom: 7px;
   }
 
-  td {
-    padding: 9px 5px;
+  .info {
+    margin-bottom: 7px;
   }
 
   th {
-    padding: 7px 5px;
+    padding: 7px 4px;
+  }
+
+  td {
+    padding: 8px 4px;
+  }
+
+  footer {
+    margin-top: 9px;
   }
 }
 </style>
@@ -165,33 +184,40 @@ footer {
   <span>LIVE RADAR DATA</span>
 </div>
 
+<div class="table-wrap">
 <table>
   <thead>
     <tr>
-  <th>FLIGHT</th>
-  <th>AIRCRAFT TYPE</th>
-  <th>ALTITUDE</th>
-  <th>SPEED</th>
-  <th>HEADING</th>
-  <th>DISTANCE</th>
-</tr>
+      <th>FLIGHT</th>
+      <th>AIRCRAFT TYPE</th>
+      <th>ALTITUDE</th>
+      <th>SPEED</th>
+      <th>HEADING</th>
+      <th>DISTANCE</th>
+    </tr>
   </thead>
   <tbody id="flights"></tbody>
 </table>
+</div>
 
-<div id="empty">Aktuell keine Flugzeuge im gewählten Umkreis gefunden.</div>
+<div id="empty">
+  Aktuell keine Flugzeuge im gewählten Umkreis gefunden.
+</div>
 
 <button id="locate">GPS-STANDORT AKTUALISIEREN</button>
 
 <footer>
   <span>DATA: ADSB.LOL</span>
   <span>UPDATE: 15 SEC</span>
-  <span>FLIGHTWALL V1.0</span>
+  <span id="lastUpdate">WAITING FOR DATA</span>
 </footer>
 
 <script>
 const RADIUS_NM = 50;
 const REFRESH_MS = 15000;
+
+const WORKER_URL =
+  "https://bitter-fog-12bdflightwall-proxy.qbk-design.workers.dev";
 
 let userLat = null;
 let userLon = null;
@@ -202,6 +228,7 @@ const statusEl = document.getElementById("status");
 const flightsEl = document.getElementById("flights");
 const countEl = document.getElementById("count");
 const emptyEl = document.getElementById("empty");
+const lastUpdateEl = document.getElementById("lastUpdate");
 
 function updateClock() {
   document.getElementById("clock").textContent =
@@ -226,33 +253,19 @@ function distanceNM(lat1, lon1, lat2, lon2) {
     Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function headingText(degrees) {
-  if (typeof degrees !== "number") return "--";
-
-  const directions = [
-    "N", "NNO", "NO", "ONO",
-    "O", "OSO", "SO", "SSO",
-    "S", "SSW", "SW", "WSW",
-    "W", "WNW", "NW", "NNW"
-  ];
-
-  return Math.round(degrees) + "° " +
-    directions[Math.round(degrees / 22.5) % 16];
-}
-
 function altitudeText(value) {
   if (value === "ground") return "BODEN";
   if (typeof value !== "number") return "--";
 
-  const meters = Math.round(value * 0.3048);
-  return meters.toLocaleString("de-AT") + " m";
+  return Math.round(value * 0.3048)
+    .toLocaleString("de-AT") + " m";
 }
 
 function speedText(value) {
   if (typeof value !== "number") return "--";
 
-  const kmh = Math.round(value * 1.852);
-  return kmh.toLocaleString("de-AT") + " km/h";
+  return Math.round(value * 1.852)
+    .toLocaleString("de-AT") + " km/h";
 }
 
 function headingText(degrees) {
@@ -279,35 +292,47 @@ function aircraftName(code) {
     "A21N": "Airbus A321neo",
     "A332": "Airbus A330-200",
     "A333": "Airbus A330-300",
+    "A338": "Airbus A330-800",
+    "A339": "Airbus A330-900",
     "A359": "Airbus A350-900",
     "A35K": "Airbus A350-1000",
     "A388": "Airbus A380",
+    "B736": "Boeing 737-600",
+    "B737": "Boeing 737-700",
     "B738": "Boeing 737-800",
-    "B38M": "Boeing 737 MAX 8",
     "B739": "Boeing 737-900",
+    "B38M": "Boeing 737 MAX 8",
+    "B39M": "Boeing 737 MAX 9",
     "B744": "Boeing 747-400",
     "B748": "Boeing 747-8",
+    "B752": "Boeing 757-200",
     "B763": "Boeing 767-300",
     "B772": "Boeing 777-200",
     "B77W": "Boeing 777-300ER",
     "B788": "Boeing 787-8",
     "B789": "Boeing 787-9",
+    "B78X": "Boeing 787-10",
+    "E170": "Embraer E170",
+    "E175": "Embraer E175",
     "E190": "Embraer E190",
     "E195": "Embraer E195",
     "E290": "Embraer E190-E2",
     "E295": "Embraer E195-E2",
+    "CRJ7": "Bombardier CRJ-700",
     "CRJ9": "Bombardier CRJ-900",
     "DH8D": "Dash 8 Q400",
+    "AT72": "ATR 72",
     "AT76": "ATR 72-600"
   };
 
   if (!code) return "UNBEKANNT";
-
   return types[code] || code;
 }
+
 function addCell(row, text, className) {
   const cell = document.createElement("td");
   cell.textContent = text;
+  cell.title = text;
   if (className) cell.className = className;
   row.appendChild(cell);
 }
@@ -320,16 +345,12 @@ async function loadFlights() {
 
   try {
     const url =
-  `https://bitter-fog-12bdflightwall-proxy.qbk-design.workers.dev/flights?lat=${userLat}&lon=${userLon}&dist=${RADIUS_NM}`;
+      `${WORKER_URL}/flights?lat=${userLat}&lon=${userLon}&dist=${RADIUS_NM}`;
 
     const response = await fetch(url);
 
-if (!response.ok) {
-  throw new Error("HTTP " + response.status);
-}
-
     if (!response.ok) {
-      throw new Error("Flugdaten nicht erreichbar");
+      throw new Error("HTTP " + response.status);
     }
 
     const data = await response.json();
@@ -342,7 +363,9 @@ if (!response.ok) {
       )
       .map(a => ({
         ...a,
-        distance: distanceNM(userLat, userLon, a.lat, a.lon)
+        distance: distanceNM(
+          userLat, userLon, a.lat, a.lon
+        )
       }))
       .filter(a => a.distance <= RADIUS_NM)
       .sort((a, b) => a.distance - b.distance);
@@ -352,22 +375,29 @@ if (!response.ok) {
     nearby.forEach(plane => {
       const row = document.createElement("tr");
 
-      const flight = (plane.flight || "").trim() || "UNKNOWN";
-      const aircraftType = aircraftName(plane.t);
+      const flight =
+        (plane.flight || "").trim() || "UNKNOWN";
 
       addCell(row, flight, "flight");
-      addCell(row, aircraftType);
+      addCell(row, aircraftName(plane.t));
       addCell(row, altitudeText(plane.alt_baro));
       addCell(row, speedText(plane.gs));
       addCell(row, headingText(plane.track));
-      addCell(row, (plane.distance * 1.852).toFixed(1) + " km");
+      addCell(
+        row,
+        (plane.distance * 1.852).toFixed(1) + " km"
+      );
 
       flightsEl.appendChild(row);
     });
 
     countEl.textContent = nearby.length + " AIRCRAFT";
     emptyEl.style.display = nearby.length ? "none" : "block";
+
     statusEl.textContent = "LIVE • GPS AKTIV";
+
+    lastUpdateEl.textContent =
+      "UPDATED " + new Date().toLocaleTimeString("de-AT");
 
   } catch (error) {
     statusEl.textContent = "FEHLER: " + error.message;
@@ -409,7 +439,8 @@ function startGPS() {
   );
 }
 
-document.getElementById("locate").addEventListener("click", startGPS);
+document.getElementById("locate")
+  .addEventListener("click", startGPS);
 
 startGPS();
 </script>
