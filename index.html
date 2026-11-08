@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>FLIGHTWALL</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 18px;
+  background: #050505;
+  color: #f5f5f5;
+  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #e5bd32;
+  padding-bottom: 12px;
+  margin-bottom: 15px;
+}
+
+h1 {
+  color: #e5bd32;
+  font-size: clamp(24px, 4vw, 42px);
+  letter-spacing: 5px;
+  margin: 0;
+}
+
+#clock {
+  color: #e5bd32;
+  font-size: clamp(18px, 3vw, 28px);
+  font-weight: bold;
+}
+
+.info {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #aaa;
+  font-size: 12px;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+#status {
+  color: #e5bd32;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+th {
+  color: #e5bd32;
+  text-align: left;
+  font-size: clamp(9px, 1.5vw, 14px);
+  padding: 10px 5px;
+  border-bottom: 1px solid #555;
+  letter-spacing: 1px;
+}
+
+td {
+  padding: 13px 5px;
+  border-bottom: 1px solid #252525;
+  font-size: clamp(10px, 1.7vw, 16px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+tr:nth-child(even) {
+  background: #101010;
+}
+
+.flight {
+  color: #e5bd32;
+  font-weight: bold;
+}
+
+.muted {
+  color: #888;
+}
+
+#empty {
+  text-align: center;
+  color: #888;
+  padding: 35px 10px;
+  display: none;
+}
+
+button {
+  background: #e5bd32;
+  border: none;
+  padding: 10px 15px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 15px;
+}
+
+footer {
+  margin-top: 20px;
+  border-top: 1px solid #333;
+  padding-top: 10px;
+  color: #666;
+  font-size: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  body {
+    padding: 10px 18px;
+  }
+
+  header {
+    margin-bottom: 8px;
+    padding-bottom: 7px;
+  }
+
+  td {
+    padding: 8px 5px;
+  }
+
+  th {
+    padding: 6px 5px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>FLIGHTWALL</h1>
+  <div id="clock">--:--:--</div>
+</header>
+
+<div class="info">
+  <span id="status">GPS wird gesucht ...</span>
+  <span id="count">0 AIRCRAFT</span>
+  <span>LIVE RADAR DATA</span>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>FLIGHT</th>
+      <th>AIRCRAFT</th>
+      <th>ALTITUDE</th>
+      <th>SPEED</th>
+      <th>HEADING</th>
+      <th>DISTANCE</th>
+    </tr>
+  </thead>
+  <tbody id="flights"></tbody>
+</table>
+
+<div id="empty">Aktuell keine Flugzeuge im gewählten Umkreis gefunden.</div>
+
+<button id="locate">GPS-STANDORT AKTUALISIEREN</button>
+
+<footer>
+  <span>DATA: ADSB.LOL</span>
+  <span>UPDATE: 15 SEC</span>
+  <span>FLIGHTWALL V1.0</span>
+</footer>
+
+<script>
+const RADIUS_NM = 50;
+const REFRESH_MS = 15000;
+
+let userLat = null;
+let userLon = null;
+let refreshTimer = null;
+let loading = false;
+
+const statusEl = document.getElementById("status");
+const flightsEl = document.getElementById("flights");
+const countEl = document.getElementById("count");
+const emptyEl = document.getElementById("empty");
+
+function updateClock() {
+  document.getElementById("clock").textContent =
+    new Date().toLocaleTimeString("de-AT");
+}
+
+setInterval(updateClock, 1000);
+updateClock();
+
+function distanceNM(lat1, lon1, lat2, lon2) {
+  const rad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * rad;
+  const dLon = (lon2 - lon1) * rad;
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * rad) *
+    Math.cos(lat2 * rad) *
+    Math.sin(dLon / 2) ** 2;
+
+  return 3440.065 * 2 *
+    Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function headingText(degrees) {
+  if (typeof degrees !== "number") return "--";
+
+  const directions = [
+    "N", "NNO", "NO", "ONO",
+    "O", "OSO", "SO", "SSO",
+    "S", "SSW", "SW", "WSW",
+    "W", "WNW", "NW", "NNW"
+  ];
+
+  return Math.round(degrees) + "° " +
+    directions[Math.round(degrees / 22.5) % 16];
+}
+
+function altitudeText(value) {
+  if (value === "ground") return "GROUND";
+  if (typeof value !== "number") return "--";
+  return Math.round(value).toLocaleString("de-AT") + " ft";
+}
+
+function speedText(value) {
+  if (typeof value !== "number") return "--";
+  return Math.round(value) + " kt";
+}
+
+function addCell(row, text, className) {
+  const cell = document.createElement("td");
+  cell.textContent = text;
+  if (className) cell.className = className;
+  row.appendChild(cell);
+}
+
+async function loadFlights() {
+  if (loading || userLat === null || userLon === null) return;
+
+  loading = true;
+  statusEl.textContent = "DATEN WERDEN GELADEN ...";
+
+  try {
+    const url =
+      `https://api.adsb.lol/v2/lat/${userLat}/lon/${userLon}/dist/${RADIUS_NM}`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error("Flugdaten nicht erreichbar");
+    }
+
+    const data = await response.json();
+    const aircraft = Array.isArray(data.ac) ? data.ac : [];
+
+    const nearby = aircraft
+      .filter(a =>
+        typeof a.lat === "number" &&
+        typeof a.lon === "number"
+      )
+      .map(a => ({
+        ...a,
+        distance: distanceNM(userLat, userLon, a.lat, a.lon)
+      }))
+      .filter(a => a.distance <= RADIUS_NM)
+      .sort((a, b) => a.distance - b.distance);
+
+    flightsEl.replaceChildren();
+
+    nearby.forEach(plane => {
+      const row = document.createElement("tr");
+
+      const flight = (plane.flight || "").trim() || "UNKNOWN";
+      const aircraftType = plane.t || "UNKNOWN";
+
+      addCell(row, flight, "flight");
+      addCell(row, aircraftType);
+      addCell(row, altitudeText(plane.alt_baro));
+      addCell(row, speedText(plane.gs));
+      addCell(row, headingText(plane.track));
+      addCell(row, plane.distance.toFixed(1) + " NM");
+
+      flightsEl.appendChild(row);
+    });
+
+    countEl.textContent = nearby.length + " AIRCRAFT";
+    emptyEl.style.display = nearby.length ? "none" : "block";
+    statusEl.textContent = "LIVE • GPS AKTIV";
+
+  } catch (error) {
+    statusEl.textContent = "FEHLER BEIM LADEN DER FLUGDATEN";
+    console.error(error);
+  } finally {
+    loading = false;
+  }
+}
+
+function startGPS() {
+  if (!navigator.geolocation) {
+    statusEl.textContent = "GPS NICHT VERFÜGBAR";
+    return;
+  }
+
+  statusEl.textContent = "GPS-STANDORT WIRD ERMITTELT ...";
+
+  navigator.geolocation.getCurrentPosition(
+    position => {
+      userLat = position.coords.latitude;
+      userLon = position.coords.longitude;
+
+      statusEl.textContent = "GPS AKTIV";
+
+      loadFlights();
+
+      if (refreshTimer) clearInterval(refreshTimer);
+      refreshTimer = setInterval(loadFlights, REFRESH_MS);
+    },
+    error => {
+      statusEl.textContent =
+        "GPS NICHT FREIGEGEBEN – BITTE STANDORT ERLAUBEN";
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 30000
+    }
+  );
+}
+
+document.getElementById("locate").addEventListener("click", startGPS);
+
+startGPS();
+</script>
+
+</body>
+</html>
