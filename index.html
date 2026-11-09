@@ -466,7 +466,7 @@ const ISS_POSITION_URL =
   "https://api.wheretheiss.at/v1/satellites/25544?units=kilometers";
 
 const ISS_PASSES_URL =
-  "https://iss-in.space/api/passes/";
+  "https://iss-api.polluxlabs.io/iss-pass";
 
 let userLat = null;
 let userLon = null;
@@ -713,7 +713,9 @@ async function loadISSPasses() {
 
     const url =
       ISS_PASSES_URL +
-      userLat + "/" + userLon;
+      "?lat=" + encodeURIComponent(userLat) +
+      "&lon=" + encodeURIComponent(userLon) +
+      "&n=10&days_ahead=10&min_elevation=10";
 
     const response = await fetch(url);
 
@@ -723,20 +725,46 @@ async function loadISSPasses() {
 
     const data = await response.json();
 
-    if (!Array.isArray(data)) {
+    if (!data || !Array.isArray(data.passes)) {
       throw new Error("Ungültige Überflugdaten");
     }
 
     const now = Date.now();
 
-    issPasses = data
+    issPasses = data.passes
       .filter(pass =>
         pass.rise &&
-        pass.culminate &&
+        pass.culmination &&
         pass.set &&
+        pass.rise.time &&
+        pass.culmination.time &&
+        pass.set.time &&
         new Date(pass.rise.time).getTime() > now &&
-        Number(pass.culminate.degrees) >= 10
+        Number(pass.culmination.elevation_deg) >= 10
       )
+      .map(pass => {
+        const duration = Number(pass.duration_sec) || 0;
+
+        return {
+          rise: {
+            time: pass.rise.time,
+            direction: pass.rise.compass || "--"
+          },
+          culminate: {
+            time: pass.culmination.time,
+            degrees: pass.culmination.elevation_deg
+          },
+          set: {
+            time: pass.set.time,
+            direction: pass.set.compass || "--"
+          },
+          length: duration,
+          length_mins:
+            Math.floor(duration / 60) + ":" +
+            String(duration % 60).padStart(2, "0"),
+          visible: pass.visible
+        };
+      })
       .sort((a, b) =>
         new Date(a.rise.time) - new Date(b.rise.time)
       );
@@ -747,14 +775,14 @@ async function loadISSPasses() {
 
     if (!issPasses.length) {
       issStatusEl.textContent =
-        "KEIN PASS ÜBER 10° IN DEN NÄCHSTEN TAGEN GEFUNDEN";
+        "KEIN PASS ÜBER 10° IN DEN NÄCHSTEN 10 TAGEN GEFUNDEN";
     } else {
       issStatusEl.textContent =
         "ÜBERFLUGDATEN AKTUALISIERT • " +
         new Date().toLocaleTimeString("de-AT");
     }
 
-   } catch (error) {
+  } catch (error) {
     issStatusEl.textContent =
       "ISS FEHLER: " + error.message;
 
