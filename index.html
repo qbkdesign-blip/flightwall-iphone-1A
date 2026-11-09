@@ -754,9 +754,9 @@ async function loadISSPasses() {
         new Date().toLocaleTimeString("de-AT");
     }
 
-  } catch (error) {
+   } catch (error) {
     issStatusEl.textContent =
-      "ÜBERFLUGDATEN NICHT ERREICHBAR";
+      "ISS FEHLER: " + error.message;
 
     console.error("ISS passes:", error);
   }
