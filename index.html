@@ -135,6 +135,133 @@ button {
   letter-spacing: 1px;
 }
 
+/* ISS BEREICH */
+
+.iss-panel {
+  margin-top: 22px;
+  border: 1px solid #695522;
+  background: linear-gradient(135deg, #101010, #080808);
+  padding: 14px;
+}
+
+.iss-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #695522;
+  padding-bottom: 10px;
+  margin-bottom: 13px;
+}
+
+.iss-title {
+  color: #e5bd32;
+  font-size: clamp(17px, 2.5vw, 25px);
+  font-weight: 900;
+  letter-spacing: 2px;
+}
+
+.iss-live {
+  color: #69c77b;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.iss-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.iss-item {
+  background: #151515;
+  border-left: 2px solid #8a702d;
+  padding: 10px;
+  min-width: 0;
+}
+
+.iss-label {
+  color: #888;
+  font-size: 9px;
+  letter-spacing: 1px;
+  margin-bottom: 7px;
+  text-transform: uppercase;
+}
+
+.iss-value {
+  color: #fff;
+  font-size: clamp(13px, 2vw, 22px);
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+.iss-yellow {
+  color: #e5bd32;
+}
+
+.iss-green {
+  color: #69c77b;
+}
+
+.iss-pass {
+  margin-top: 13px;
+  border: 1px solid #51421e;
+  background: #111;
+  padding: 12px;
+}
+
+.iss-pass-title {
+  color: #e5bd32;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  margin-bottom: 12px;
+}
+
+.iss-pass-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.iss-pass-item {
+  text-align: center;
+  background: #191919;
+  padding: 10px 4px;
+}
+
+.iss-pass-label {
+  color: #888;
+  font-size: 9px;
+  margin-bottom: 7px;
+  letter-spacing: 0.5px;
+}
+
+.iss-pass-value {
+  color: #e5bd32;
+  font-size: clamp(15px, 2vw, 23px);
+  font-weight: bold;
+}
+
+.iss-pass-time {
+  color: #fff;
+  font-size: 11px;
+  margin-top: 5px;
+}
+
+.iss-note {
+  color: #777;
+  font-size: 10px;
+  margin-top: 11px;
+  line-height: 1.5;
+}
+
+#issStatus {
+  color: #888;
+  font-size: 11px;
+  margin-top: 10px;
+}
+
 footer {
   margin-top: 18px;
   border-top: 1px solid #444;
@@ -145,6 +272,16 @@ footer {
   justify-content: space-between;
   gap: 8px;
   letter-spacing: 0.5px;
+}
+
+@media (max-width: 600px) {
+  .iss-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .iss-pass-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
@@ -167,6 +304,28 @@ footer {
 
   td {
     padding: 8px 4px;
+  }
+
+  .iss-panel {
+    margin-top: 12px;
+    padding: 10px;
+  }
+
+  .iss-item {
+    padding: 7px;
+  }
+
+  .iss-pass {
+    margin-top: 8px;
+    padding: 8px;
+  }
+
+  .iss-pass-item {
+    padding: 7px 4px;
+  }
+
+  .iss-note {
+    margin-top: 7px;
   }
 
   footer {
@@ -211,9 +370,88 @@ footer {
 
 <button id="locate">GPS-STANDORT AKTUALISIEREN</button>
 
+<!-- ISS LIVE BEREICH -->
+
+<section class="iss-panel">
+
+  <div class="iss-header">
+    <div class="iss-title">ISS – LIVE TRACKING</div>
+    <div class="iss-live">● LIVE ORBIT</div>
+  </div>
+
+  <div class="iss-grid">
+
+    <div class="iss-item">
+      <div class="iss-label">HÖHE ÜBER ERDE</div>
+      <div class="iss-value iss-yellow" id="issAltitude">-- km</div>
+    </div>
+
+    <div class="iss-item">
+      <div class="iss-label">GESCHWINDIGKEIT</div>
+      <div class="iss-value" id="issSpeed">-- km/h</div>
+    </div>
+
+    <div class="iss-item">
+      <div class="iss-label">BREITENGRAD</div>
+      <div class="iss-value" id="issLat">--</div>
+    </div>
+
+    <div class="iss-item">
+      <div class="iss-label">LÄNGENGRAD</div>
+      <div class="iss-value" id="issLon">--</div>
+    </div>
+
+  </div>
+
+  <div class="iss-pass">
+
+    <div class="iss-pass-title">
+      NÄCHSTER ISS-ÜBERFLUG ÜBER DEINEM STANDORT
+    </div>
+
+    <div class="iss-pass-grid">
+
+      <div class="iss-pass-item">
+        <div class="iss-pass-label">ERSCHEINT</div>
+        <div class="iss-pass-value" id="issRiseDir">--</div>
+        <div class="iss-pass-time" id="issRiseTime">--:--</div>
+      </div>
+
+      <div class="iss-pass-item">
+        <div class="iss-pass-label">MAX. HÖHE</div>
+        <div class="iss-pass-value" id="issMaxElevation">--°</div>
+        <div class="iss-pass-time" id="issMaxTime">--:--</div>
+      </div>
+
+      <div class="iss-pass-item">
+        <div class="iss-pass-label">VERSCHWINDET</div>
+        <div class="iss-pass-value" id="issSetDir">--</div>
+        <div class="iss-pass-time" id="issSetTime">--:--</div>
+      </div>
+
+      <div class="iss-pass-item">
+        <div class="iss-pass-label">BEGINN IN</div>
+        <div class="iss-pass-value iss-green" id="issCountdown">--</div>
+        <div class="iss-pass-time" id="issDuration">--</div>
+      </div>
+
+    </div>
+
+    <div class="iss-note">
+      Überflugberechnung ab 10° maximaler Horizonthöhe.
+      Die tatsächliche Sichtbarkeit hängt auch von Dunkelheit,
+      Sonnenstand und Wetter ab.
+    </div>
+
+  </div>
+
+  <div id="issStatus">Warte auf GPS-Standort ...</div>
+
+</section>
+
 <footer>
   <span>DATA: ADSB.LOL</span>
-  <span>UPDATE: 15 SEC</span>
+  <span>ISS: LIVE ORBIT</span>
   <span id="lastUpdate">WAITING FOR DATA</span>
 </footer>
 
@@ -224,16 +462,26 @@ const REFRESH_MS = 15000;
 const WORKER_URL =
   "https://bitter-fog-12bdflightwall-proxy.qbk-design.workers.dev";
 
+const ISS_POSITION_URL =
+  "https://api.wheretheiss.at/v1/satellites/25544?units=kilometers";
+
+const ISS_PASSES_URL =
+  "https://iss-in.space/api/passes/";
+
 let userLat = null;
 let userLon = null;
 let refreshTimer = null;
 let loading = false;
+
+let issPasses = [];
+let lastPassUpdate = 0;
 
 const statusEl = document.getElementById("status");
 const flightsEl = document.getElementById("flights");
 const countEl = document.getElementById("count");
 const emptyEl = document.getElementById("empty");
 const lastUpdateEl = document.getElementById("lastUpdate");
+const issStatusEl = document.getElementById("issStatus");
 
 function updateClock() {
   document.getElementById("clock").textContent =
@@ -419,9 +667,185 @@ async function loadFlights() {
   }
 }
 
+/* ISS AKTUELLE POSITION */
+
+async function loadISSPosition() {
+  try {
+    const response = await fetch(ISS_POSITION_URL);
+
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status);
+    }
+
+    const data = await response.json();
+
+    document.getElementById("issAltitude").textContent =
+      Math.round(data.altitude) + " km";
+
+    document.getElementById("issSpeed").textContent =
+      Math.round(data.velocity).toLocaleString("de-AT") + " km/h";
+
+    document.getElementById("issLat").textContent =
+      Number(data.latitude).toFixed(2) + "°";
+
+    document.getElementById("issLon").textContent =
+      Number(data.longitude).toFixed(2) + "°";
+
+    issStatusEl.textContent =
+      "ISS POSITION AKTUALISIERT • " +
+      new Date().toLocaleTimeString("de-AT");
+
+  } catch (error) {
+    issStatusEl.textContent =
+      "ISS POSITION NICHT ERREICHBAR";
+
+    console.error("ISS position:", error);
+  }
+}
+
+/* ISS ÜBERFLUG BERECHNEN */
+
+async function loadISSPasses() {
+  if (userLat === null || userLon === null) return;
+
+  try {
+    issStatusEl.textContent = "ISS-ÜBERFLÜGE WERDEN BERECHNET ...";
+
+    const url =
+      ISS_PASSES_URL +
+      userLat + "/" + userLon;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status);
+    }
+
+    const data = await response.json();
+
+    if (!Array.isArray(data)) {
+      throw new Error("Ungültige Überflugdaten");
+    }
+
+    const now = Date.now();
+
+    issPasses = data
+      .filter(pass =>
+        pass.rise &&
+        pass.culminate &&
+        pass.set &&
+        new Date(pass.rise.time).getTime() > now &&
+        Number(pass.culminate.degrees) >= 10
+      )
+      .sort((a, b) =>
+        new Date(a.rise.time) - new Date(b.rise.time)
+      );
+
+    lastPassUpdate = now;
+
+    updateISSPassDisplay();
+
+    if (!issPasses.length) {
+      issStatusEl.textContent =
+        "KEIN PASS ÜBER 10° IN DEN NÄCHSTEN TAGEN GEFUNDEN";
+    } else {
+      issStatusEl.textContent =
+        "ÜBERFLUGDATEN AKTUALISIERT • " +
+        new Date().toLocaleTimeString("de-AT");
+    }
+
+  } catch (error) {
+    issStatusEl.textContent =
+      "ÜBERFLUGDATEN NICHT ERREICHBAR";
+
+    console.error("ISS passes:", error);
+  }
+}
+
+/* UHRZEIT FORMATIEREN */
+
+function formatISSDate(value) {
+  if (!value) return "--";
+
+  return new Date(value).toLocaleTimeString("de-AT", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+/* COUNTDOWN */
+
+function updateISSPassDisplay() {
+  if (!issPasses.length) return;
+
+  const pass = issPasses[0];
+
+  const rise = new Date(pass.rise.time);
+  const culmination = new Date(pass.culminate.time);
+  const set = new Date(pass.set.time);
+
+  document.getElementById("issRiseDir").textContent =
+    pass.rise.direction || "--";
+
+  document.getElementById("issRiseTime").textContent =
+    formatISSDate(pass.rise.time);
+
+  document.getElementById("issMaxElevation").textContent =
+    Math.round(pass.culminate.degrees) + "°";
+
+  document.getElementById("issMaxTime").textContent =
+    formatISSDate(pass.culminate.time);
+
+  document.getElementById("issSetDir").textContent =
+    pass.set.direction || "--";
+
+  document.getElementById("issSetTime").textContent =
+    formatISSDate(pass.set.time);
+
+  const seconds = Math.max(
+    0,
+    Math.floor((rise.getTime() - Date.now()) / 1000)
+  );
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+
+  let countdown = "";
+
+  if (hours > 0) {
+    countdown = hours + "h " + minutes + "m";
+  } else if (minutes > 0) {
+    countdown = minutes + "m " + remainingSeconds + "s";
+  } else {
+    countdown = remainingSeconds + "s";
+  }
+
+  document.getElementById("issCountdown").textContent =
+    countdown;
+
+  document.getElementById("issDuration").textContent =
+    "DAUER " + (pass.length_mins || "--");
+
+  if (rise.getTime() <= Date.now()) {
+    issPasses.shift();
+
+    if (issPasses.length) {
+      updateISSPassDisplay();
+    } else {
+      document.getElementById("issCountdown").textContent = "--";
+      document.getElementById("issStatus").textContent =
+        "WARTET AUF NEUE ÜBERFLUGDATEN";
+    }
+  }
+}
+
+/* GPS */
+
 function startGPS() {
   if (!navigator.geolocation) {
     statusEl.textContent = "GPS NICHT VERFÜGBAR";
+    issStatusEl.textContent = "GPS NICHT VERFÜGBAR";
     return;
   }
 
@@ -435,13 +859,27 @@ function startGPS() {
       statusEl.textContent = "GPS AKTIV";
 
       loadFlights();
+      loadISSPosition();
+      loadISSPasses();
 
       if (refreshTimer) clearInterval(refreshTimer);
-      refreshTimer = setInterval(loadFlights, REFRESH_MS);
+
+      refreshTimer = setInterval(() => {
+        loadFlights();
+        loadISSPosition();
+
+        // Überflugzeiten alle 30 Minuten neu berechnen
+        if (Date.now() - lastPassUpdate > 30 * 60 * 1000) {
+          loadISSPasses();
+        }
+      }, REFRESH_MS);
     },
     error => {
       statusEl.textContent =
         "GPS NICHT FREIGEGEBEN – BITTE STANDORT ERLAUBEN";
+
+      issStatusEl.textContent =
+        "ISS-ÜBERFLÜGE BENÖTIGEN DEINEN GPS-STANDORT";
     },
     {
       enableHighAccuracy: true,
@@ -451,10 +889,18 @@ function startGPS() {
   );
 }
 
+/* COUNTDOWN JEDE SEKUNDE AKTUALISIEREN */
+
+setInterval(updateISSPassDisplay, 1000);
+
 document.getElementById("locate")
   .addEventListener("click", startGPS);
 
 startGPS();
+
+/* ISS POSITION BEI SEITENSTART LADEN */
+loadISSPosition();
+
 </script>
 
 </body>
