@@ -332,10 +332,145 @@ footer {
     margin-top: 9px;
   }
 }
+
+/* WIENER LINIEN U4 */
+
+.u4-panel {
+  margin-bottom: 14px;
+  border: 1px solid #244a68;
+  background: linear-gradient(135deg, #101820, #080b0f);
+  padding: 10px;
+}
+
+.u4-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #244a68;
+  padding-bottom: 8px;
+  margin-bottom: 9px;
+}
+
+.u4-title {
+  color: #e5bd32;
+  font-size: clamp(13px, 2vw, 18px);
+  font-weight: 900;
+  letter-spacing: 1.5px;
+}
+
+.u4-live {
+  color: #69c77b;
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.u4-directions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.u4-direction {
+  min-width: 0;
+  background: #111820;
+  border: 1px solid #263746;
+  padding: 9px;
+}
+
+.u4-destination {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #eee;
+  font-size: clamp(10px, 1.6vw, 14px);
+  font-weight: bold;
+  letter-spacing: .5px;
+  white-space: nowrap;
+  margin-bottom: 8px;
+}
+
+.u4-badge {
+  background: #0879c9;
+  color: #fff;
+  border-radius: 3px;
+  padding: 4px 6px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.u4-next {
+  color: #e5bd32;
+  font-size: clamp(23px, 4vw, 34px);
+  line-height: 1.1;
+  font-weight: 900;
+  font-family: monospace;
+}
+
+.u4-next small {
+  color: #aaa;
+  font-size: 11px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: normal;
+}
+
+.u4-later {
+  color: #aaa;
+  font-size: 10px;
+  line-height: 1.6;
+  margin-top: 6px;
+  min-height: 16px;
+}
+
+.u4-status {
+  color: #777;
+  font-size: 9px;
+  margin-top: 8px;
+  text-align: right;
+}
 </style>
 </head>
 
 <body>
+
+<!-- WIENER LINIEN U4 SCHÖNBRUNN -->
+
+<section class="u4-panel" aria-label="Wiener Linien U4 Schönbrunn">
+  <div class="u4-header">
+    <div class="u4-title">WIENER LINIEN · SCHÖNBRUNN</div>
+    <div class="u4-live" id="u4Live">● LIVE</div>
+  </div>
+
+  <div class="u4-directions">
+
+    <div class="u4-direction">
+      <div class="u4-destination">
+        <span class="u4-badge">U4</span> HEILIGENSTADT
+      </div>
+      <div class="u4-next" id="u4HeiligenstadtNext">-- <small>MIN.</small></div>
+      <div class="u4-later" id="u4HeiligenstadtLater">
+        Abfahrten werden geladen ...
+      </div>
+    </div>
+
+    <div class="u4-direction">
+      <div class="u4-destination">
+        <span class="u4-badge">U4</span> HÜTTELDORF
+      </div>
+      <div class="u4-next" id="u4HutteldorfNext">-- <small>MIN.</small></div>
+      <div class="u4-later" id="u4HutteldorfLater">
+        Abfahrten werden geladen ...
+      </div>
+    </div>
+
+  </div>
+
+  <div class="u4-status" id="u4Status">
+    WIENER LINIEN DATEN WERDEN GELADEN ...
+  </div>
+</section>
 
 <header>
   <h1>FLIGHTWALL</h1>
@@ -468,6 +603,167 @@ const ISS_POSITION_URL =
 const ISS_PASSES_URL =
   "https://iss-api.polluxlabs.io/iss-pass";
 
+/* WIENER LINIEN EINSTELLUNGEN */
+
+const WIENER_LINIEN_URL = WORKER_URL + "/wienerlinien";
+const U4_REFRESH_MS = 15000;
+
+let u4Departures = {
+  heiligenstadt: [],
+  hutteldorf: []
+};
+
+let u4FetchedAt = 0;
+
+/* WIENER LINIEN ABFAHRTEN LADEN */
+
+function loadWienerLinien() {
+  fetch(WIENER_LINIEN_URL)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("HTTP " + response.status);
+      }
+      return response.json();
+    })
+    .then(data => {
+      const monitors =
+        data && data.data && Array.isArray(data.data.monitors)
+          ? data.data.monitors
+          : [];
+
+      const found = {
+        heiligenstadt: [],
+        hutteldorf: []
+      };
+
+      monitors.forEach(monitor => {
+        const lines = Array.isArray(monitor.lines)
+          ? monitor.lines
+          : [];
+
+        lines.forEach(line => {
+          if (line.name !== "U4") return;
+
+          const destination = (line.towards || "").toLowerCase();
+
+          const key = destination.includes("heiligenstadt")
+            ? "heiligenstadt"
+            : destination.includes("hütteldorf") ||
+              destination.includes("huetteldorf")
+              ? "hutteldorf"
+              : null;
+
+          if (!key) return;
+
+          const departures =
+            line.departures &&
+            Array.isArray(line.departures.departure)
+              ? line.departures.departure
+              : [];
+
+          departures.forEach(dep => {
+            const time = dep.departureTime || {};
+            const countdown = Number(time.countdown);
+
+            if (!Number.isFinite(countdown)) return;
+
+            found[key].push({
+              countdown: Math.max(0, countdown),
+              onStop: !!(dep.vehicle && dep.vehicle.onStop),
+              realTime: time.timeReal || time.timePlanned || null
+            });
+          });
+        });
+      });
+
+      Object.keys(found).forEach(key => {
+        found[key].sort((a, b) => a.countdown - b.countdown);
+
+        // Doppelte Abfahrten vermeiden.
+        found[key] = found[key].filter((item, index, arr) =>
+          index === 0 ||
+          item.countdown !== arr[index - 1].countdown ||
+          item.realTime !== arr[index - 1].realTime
+        ).slice(0, 5);
+      });
+
+      u4Departures = found;
+      u4FetchedAt = Date.now();
+
+      updateU4Display();
+
+      document.getElementById("u4Live").textContent = "● LIVE";
+
+      document.getElementById("u4Status").textContent =
+        "ECHTZEITDATEN · AKTUALISIERT " +
+        new Date().toLocaleTimeString("de-AT");
+    })
+    .catch(error => {
+      document.getElementById("u4Live").textContent = "● OFFLINE";
+
+      document.getElementById("u4Status").textContent =
+        "WIENER LINIEN NICHT ERREICHBAR · " + error.message;
+    });
+}
+
+/* U4 COUNTDOWN ANZEIGE */
+
+function updateU4Display() {
+  const elapsedMinutes = u4FetchedAt
+    ? (Date.now() - u4FetchedAt) / 60000
+    : 0;
+
+  function render(key, nextId, laterId) {
+    const list = u4Departures[key] || [];
+
+    const nextEl = document.getElementById(nextId);
+    const laterEl = document.getElementById(laterId);
+
+    if (!list.length) {
+      nextEl.textContent = "--";
+      laterEl.textContent = "Derzeit keine Abfahrtsdaten";
+      return;
+    }
+
+    const remaining = list.map(item =>
+      Math.max(0, item.countdown - elapsedMinutes)
+    );
+
+    const first = remaining[0];
+
+    if (first < 0.5 && list[0].onStop) {
+      nextEl.innerHTML = 'JETZT <small>AM STEIG</small>';
+    } else if (first < 0.5) {
+      nextEl.innerHTML = 'JETZT <small>MIN.</small>';
+    } else {
+      nextEl.innerHTML =
+        Math.ceil(first) + ' <small>MIN.</small>';
+    }
+
+    laterEl.textContent = remaining.slice(1, 4).map(value =>
+      Math.max(0, Math.ceil(value)) + " min"
+    ).join("  ·  ");
+
+    if (!laterEl.textContent) {
+      laterEl.textContent = "Keine weiteren Abfahrten gemeldet";
+    }
+  }
+
+  render(
+    "heiligenstadt",
+    "u4HeiligenstadtNext",
+    "u4HeiligenstadtLater"
+  );
+
+  render(
+    "hutteldorf",
+    "u4HutteldorfNext",
+    "u4HutteldorfLater"
+  );
+}
+
+/* ALLGEMEINE VARIABLEN */
+
 let userLat = null;
 let userLon = null;
 let refreshTimer = null;
@@ -483,6 +779,8 @@ const emptyEl = document.getElementById("empty");
 const lastUpdateEl = document.getElementById("lastUpdate");
 const issStatusEl = document.getElementById("issStatus");
 
+/* UHR */
+
 function updateClock() {
   document.getElementById("clock").textContent =
     new Date().toLocaleTimeString("de-AT");
@@ -491,8 +789,11 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
+/* ENTFERNUNG BERECHNEN */
+
 function distanceNM(lat1, lon1, lat2, lon2) {
   const rad = Math.PI / 180;
+
   const dLat = (lat2 - lat1) * rad;
   const dLon = (lon2 - lon1) * rad;
 
@@ -506,6 +807,8 @@ function distanceNM(lat1, lon1, lat2, lon2) {
     Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+/* HÖHE FORMATIEREN */
+
 function altitudeText(value) {
   if (value === "ground") return "BODEN";
   if (typeof value !== "number") return "--";
@@ -514,12 +817,16 @@ function altitudeText(value) {
     .toLocaleString("de-AT") + " m";
 }
 
+/* GESCHWINDIGKEIT FORMATIEREN */
+
 function speedText(value) {
   if (typeof value !== "number") return "--";
 
   return Math.round(value * 1.852)
     .toLocaleString("de-AT") + " km/h";
 }
+
+/* FLUGRICHTUNG FORMATIEREN */
 
 function headingText(degrees) {
   if (typeof degrees !== "number") return "--";
@@ -534,6 +841,8 @@ function headingText(degrees) {
   return Math.round(degrees) + "° " +
     directions[Math.round(degrees / 22.5) % 16];
 }
+
+/* FLUGZEUGTYPEN */
 
 function aircraftName(code) {
   const types = {
@@ -582,13 +891,22 @@ function aircraftName(code) {
   return types[code] || code;
 }
 
+/* TABELLENZELLE ERSTELLEN */
+
 function addCell(row, text, className) {
   const cell = document.createElement("td");
+
   cell.textContent = text;
   cell.title = text;
-  if (className) cell.className = className;
+
+  if (className) {
+    cell.className = className;
+  }
+
   row.appendChild(cell);
 }
+
+/* FLUGZEUGE LADEN */
 
 async function loadFlights() {
   if (loading || userLat === null || userLon === null) return;
@@ -607,6 +925,7 @@ async function loadFlights() {
     }
 
     const data = await response.json();
+
     const aircraft = Array.isArray(data.ac) ? data.ac : [];
 
     const nearby = aircraft
@@ -652,7 +971,9 @@ async function loadFlights() {
     });
 
     countEl.textContent = nearby.length + " AIRCRAFT";
-    emptyEl.style.display = nearby.length ? "none" : "block";
+
+    emptyEl.style.display =
+      nearby.length ? "none" : "block";
 
     statusEl.textContent = "LIVE • GPS AKTIV";
 
@@ -662,6 +983,7 @@ async function loadFlights() {
   } catch (error) {
     statusEl.textContent = "FEHLER: " + error.message;
     console.error(error);
+
   } finally {
     loading = false;
   }
@@ -709,7 +1031,8 @@ async function loadISSPasses() {
   if (userLat === null || userLon === null) return;
 
   try {
-    issStatusEl.textContent = "ISS-ÜBERFLÜGE WERDEN BERECHNET ...";
+    issStatusEl.textContent =
+      "ISS-ÜBERFLÜGE WERDEN BERECHNET ...";
 
     const url =
       ISS_PASSES_URL +
@@ -750,18 +1073,23 @@ async function loadISSPasses() {
             time: pass.rise.time,
             direction: pass.rise.compass || "--"
           },
+
           culminate: {
             time: pass.culmination.time,
             degrees: pass.culmination.elevation_deg
           },
+
           set: {
             time: pass.set.time,
             direction: pass.set.compass || "--"
           },
+
           length: duration,
+
           length_mins:
             Math.floor(duration / 60) + ":" +
             String(duration % 60).padStart(2, "0"),
+
           visible: pass.visible
         };
       })
@@ -776,6 +1104,7 @@ async function loadISSPasses() {
     if (!issPasses.length) {
       issStatusEl.textContent =
         "KEIN PASS ÜBER 10° IN DEN NÄCHSTEN 10 TAGEN GEFUNDEN";
+
     } else {
       issStatusEl.textContent =
         "ÜBERFLUGDATEN AKTUALISIERT • " +
@@ -801,7 +1130,7 @@ function formatISSDate(value) {
   });
 }
 
-/* COUNTDOWN */
+/* ISS COUNTDOWN */
 
 function updateISSPassDisplay() {
   if (!issPasses.length) return;
@@ -809,8 +1138,6 @@ function updateISSPassDisplay() {
   const pass = issPasses[0];
 
   const rise = new Date(pass.rise.time);
-  const culmination = new Date(pass.culminate.time);
-  const set = new Date(pass.set.time);
 
   document.getElementById("issRiseDir").textContent =
     pass.rise.direction || "--";
@@ -843,8 +1170,10 @@ function updateISSPassDisplay() {
 
   if (hours > 0) {
     countdown = hours + "h " + minutes + "m";
+
   } else if (minutes > 0) {
     countdown = minutes + "m " + remainingSeconds + "s";
+
   } else {
     countdown = remainingSeconds + "s";
   }
@@ -860,8 +1189,10 @@ function updateISSPassDisplay() {
 
     if (issPasses.length) {
       updateISSPassDisplay();
+
     } else {
       document.getElementById("issCountdown").textContent = "--";
+
       document.getElementById("issStatus").textContent =
         "WARTET AUF NEUE ÜBERFLUGDATEN";
     }
@@ -890,18 +1221,22 @@ function startGPS() {
       loadISSPosition();
       loadISSPasses();
 
-      if (refreshTimer) clearInterval(refreshTimer);
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+      }
 
       refreshTimer = setInterval(() => {
         loadFlights();
         loadISSPosition();
 
-        // Überflugzeiten alle 30 Minuten neu berechnen
+        // Überflugzeiten alle 30 Minuten neu berechnen.
         if (Date.now() - lastPassUpdate > 30 * 60 * 1000) {
           loadISSPasses();
         }
+
       }, REFRESH_MS);
     },
+
     error => {
       statusEl.textContent =
         "GPS NICHT FREIGEGEBEN – BITTE STANDORT ERLAUBEN";
@@ -909,6 +1244,7 @@ function startGPS() {
       issStatusEl.textContent =
         "ISS-ÜBERFLÜGE BENÖTIGEN DEINEN GPS-STANDORT";
     },
+
     {
       enableHighAccuracy: true,
       timeout: 15000,
@@ -917,9 +1253,17 @@ function startGPS() {
   );
 }
 
-/* COUNTDOWN JEDE SEKUNDE AKTUALISIEREN */
+/* COUNTDOWNS JEDE SEKUNDE AKTUALISIEREN */
 
 setInterval(updateISSPassDisplay, 1000);
+setInterval(updateU4Display, 1000);
+
+/* WIENER LINIEN LADEN UND ALLE 15 SEKUNDEN AKTUALISIEREN */
+
+loadWienerLinien();
+setInterval(loadWienerLinien, U4_REFRESH_MS);
+
+/* GPS BUTTON */
 
 document.getElementById("locate")
   .addEventListener("click", startGPS);
@@ -927,6 +1271,7 @@ document.getElementById("locate")
 startGPS();
 
 /* ISS POSITION BEI SEITENSTART LADEN */
+
 loadISSPosition();
 
 </script>
