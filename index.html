@@ -274,15 +274,47 @@ footer {
   letter-spacing: 0.5px;
 }
 
+/* SMARTPHONE */
+
 @media (max-width: 600px) {
+  body {
+    padding: 10px;
+  }
+
+  .info {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 6px 12px;
+    line-height: 1.4;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 680px;
+  }
+
   .iss-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .iss-pass-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .u4-directions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .u4-title {
+    letter-spacing: 1px;
   }
 }
+
+/* LANDSCAPE */
 
 @media (orientation: landscape) and (max-height: 500px) {
   body {
@@ -436,7 +468,7 @@ footer {
 
 <body>
 
-<!-- WIENER LINIEN U4 ANZEIGE -->
+<!-- U4 ANZEIGE -->
 
 <section class="u4-panel" aria-label="Wiener Linien U4 Schönbrunn">
   <div class="u4-header">
@@ -625,10 +657,13 @@ function loadWienerLinien() {
     })
     .then(data => {
 
-      /* KORREKTUR: MONITORE LIEGEN DIREKT IN data.monitors */
-
-      const monitors = data && Array.isArray(data.monitors)
-        ? data.monitors : [];
+      // Unterstützt beide möglichen Antwortstrukturen.
+      const monitors = data && data.data &&
+        Array.isArray(data.data.monitors)
+          ? data.data.monitors
+          : data && Array.isArray(data.monitors)
+            ? data.monitors
+            : [];
 
       const found = {
         heiligenstadt: [],
@@ -677,7 +712,6 @@ function loadWienerLinien() {
       Object.keys(found).forEach(key => {
         found[key].sort((a, b) => a.countdown - b.countdown);
 
-        // Doppelte Abfahrten vermeiden.
         found[key] = found[key].filter((item, index, arr) =>
           index === 0 ||
           item.countdown !== arr[index - 1].countdown ||
@@ -918,14 +952,26 @@ async function loadFlights() {
     const url =
       `${WORKER_URL}/flights?lat=${userLat}&lon=${userLon}&dist=${RADIUS_NM}`;
 
-    const response = await fetch(url);
+    // Zeitlimit für langsame Smartphone-Verbindungen.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    let response;
+
+    try {
+      response = await fetch(url, {
+        cache: "no-store",
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       throw new Error("HTTP " + response.status);
     }
 
     const data = await response.json();
-
     const aircraft = Array.isArray(data.ac) ? data.ac : [];
 
     const nearby = aircraft
@@ -984,8 +1030,11 @@ async function loadFlights() {
       "UPDATED " + new Date().toLocaleTimeString("de-AT");
 
   } catch (error) {
-    statusEl.textContent = "FEHLER: " + error.message;
-    console.error(error);
+    statusEl.textContent = error.name === "AbortError"
+      ? "FEHLER: ZEITÜBERSCHREITUNG BEIM LADEN DER FLUGDATEN"
+      : "FEHLER: " + error.message;
+
+    console.error("Flugdaten:", error);
 
   } finally {
     loading = false;
@@ -1141,8 +1190,6 @@ function updateISSPassDisplay() {
   const pass = issPasses[0];
 
   const rise = new Date(pass.rise.time);
-  const culmination = new Date(pass.culminate.time);
-  const set = new Date(pass.set.time);
 
   document.getElementById("issRiseDir").textContent =
     pass.rise.direction || "--";
@@ -1235,7 +1282,7 @@ function startGPS() {
         loadFlights();
         loadISSPosition();
 
-        // Überflugzeiten alle 30 Minuten neu berechnen
+        // Überflugzeiten alle 30 Minuten neu berechnen.
         if (Date.now() - lastPassUpdate > 30 * 60 * 1000) {
           loadISSPasses();
         }
@@ -1259,24 +1306,18 @@ function startGPS() {
   );
 }
 
-/* COUNTDOWNS JEDE SEKUNDE AKTUALISIEREN */
+/* AUTOMATISCHE AKTUALISIERUNG */
 
 setInterval(updateISSPassDisplay, 1000);
 setInterval(updateU4Display, 1000);
 
-/* U4 SOFORT LADEN UND ALLE 15 SEKUNDEN AKTUALISIEREN */
-
 loadWienerLinien();
 setInterval(loadWienerLinien, U4_REFRESH_MS);
-
-/* GPS BUTTON */
 
 document.getElementById("locate")
   .addEventListener("click", startGPS);
 
 startGPS();
-
-/* ISS POSITION BEI SEITENSTART LADEN */
 
 loadISSPosition();
 
